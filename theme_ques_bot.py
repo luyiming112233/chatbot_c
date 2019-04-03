@@ -255,6 +255,42 @@ class ThemeQuesBot:
             question_list.append([self.questions[sort_sims[i][0]]['question'], str(sort_sims[i][1])])
         return question_list
 
+    def get_similar_questions_by_word_list(self, word_list, question_num=10):
+        """
+        获取相似的文档/问题
+        :param target_question: 查询的问题
+        :param question_num: 返回的相似问题个数
+        :return:
+        """
+
+        target_text = word_list
+
+        print("target_text:", target_text)
+
+        # 词袋处理
+        ml_bow = self.dictionary.doc2bow(target_text)
+
+        # 若提取的关键词不再字典中，返回空
+        if len(ml_bow) == 0:
+            return None
+
+        for w in self.tfidf[ml_bow]:
+            print(w[0], w[1])
+
+        # 在上面选择的模型数据 lsi 中，计算其他数据与其的相似度
+        ml_lsi = self.lsi[ml_bow]  # ml_lsi 形式如 (topic_id, topic_value)
+        sims = self.index[ml_lsi]
+        # 排序
+        sort_sims = sorted(enumerate(sims), key=lambda item: -item[1])
+
+        question_list = []
+
+        # 查看结果
+        # 返回前question_num个相似文档标题
+        for i in range(question_num):
+            question_list.append([self.questions[sort_sims[i][0]]['question'], str(sort_sims[i][1])])
+        return question_list
+
 
 def main():
     bot = ThemeQuesBot('大数据')

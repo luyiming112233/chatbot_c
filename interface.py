@@ -9,26 +9,35 @@ app = Flask(__name__)
 
 chatbot = None
 
+chatbot =ChatBot()
+chatbot.start_all_bots()
+print('启动成功')
+
+@app.after_request
+def after_request(response):
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    return response
+
 
 @app.route('/')
 def index():
     return 'Hello World</br>'
 
 
-@app.route('/start')
+@app.route('/start', methods=['GET'])
 def chatbot_start():
     global chatbot
-    chatbot = ChatBot()
+    chatbot =ChatBot()
     chatbot.start_all_bots()
     print('启动成功')
     return json.dumps('启动成功', ensure_ascii=False)
 
 
-@app.route('/train')
+@app.route('/train', methods=['GET'])
 def chatbot_train():
     global chatbot
     if chatbot is None:
-        chatbot = ChatBot()
+        chatbot =ChatBot()
     chatbot.retrain_all_bots()
     print('训练成功')
     return json.dumps('训练成功', ensure_ascii=False)
