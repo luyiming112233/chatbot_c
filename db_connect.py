@@ -16,7 +16,7 @@ def connect_mongodb_col(db_name, col_name, localclient=True):
         client = pymongo.MongoClient("mongodb://localhost:27017/")
         db = client[db_name]
     else:
-        client = pymongo.MongoClient("mongodb://134.175.111.57:27017/")
+        client = pymongo.MongoClient("mongodb://xxxxxxxxx:27017/")
         db = client[db_name]
         if db_name == "chatbotdb":
             db.authenticate('ggfly', 'ggfly')
