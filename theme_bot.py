@@ -65,7 +65,7 @@ class ThemeBot:
     def set_theme(self, theme):
         self.theme = theme
 
-    def start(self, train=False):
+    def start(self, train=False, k=1):
         """
         ThemeBot启动函数
         train为False时，载入训练好的模型
@@ -87,7 +87,8 @@ class ThemeBot:
             self.documents = self.read_document()  # 读入文档
             # 问答推荐模型训练
             train_corpus = [
-                item['title'].lower() * math.ceil(len(item['content']) / len(item['title'])) + item['content'].lower()
+                item['title'].lower() * math.ceil(len(item['content']) / len(item['title'] ) * k) + item[
+                    'content'].lower()
                 for item in self.documents]
             self.train_by_lsi(train_corpus)
             # 历史推荐模型训练
@@ -175,7 +176,7 @@ class ThemeBot:
         start = time.clock()
         self.documents = self.read_document()
         elapsed = (time.clock() - start)
-        print(self.theme,"Time used:", elapsed)
+        print(self.theme, "Time used:", elapsed)
 
         self.kmeans_data = load_np_list(self.theme)
 
@@ -239,12 +240,6 @@ class ThemeBot:
         lsi = models.LsiModel(corpus_tfidf, id2word=dictionary, num_topics=200)
         index = similarities.MatrixSimilarity(lsi[corpus])  # index 是 gensim.similarities.docsim.MatrixSimilarity 实例
 
-        print('-----------------------')
-        print(type(lsi[corpus]))
-        for d in lsi[corpus]:
-            print(d)
-        print('-----------------------')
-
         # 存储模型的内容
         tfidf.save(self.tfidf_location)
         lsi.save(self.lsi_location)
@@ -300,6 +295,9 @@ class ThemeBot:
         :return:
         """
         # target_text = pre_process_cn(target_document, low_freq_filter=False)
+        if type(target_document) == 'str':
+            target_document = [target_document]
+
         target_text = [item for item in jieba.cut(target_document)]
 
         print("target_text:", target_text)
@@ -703,8 +701,9 @@ def main():
     while True:
         a = input('->')
         similar_questions = bot.get_similar_documents(a)
-        for l in similar_questions:
-            print(l)
+        if similar_questions is not None:
+            for l in similar_questions:
+                print(l)
 
 
 if __name__ == '__main__':
