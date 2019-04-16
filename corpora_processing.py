@@ -120,7 +120,7 @@ def extract_tf_idf(row_corpus, db_name='chatbotdb', col_name='idf_dict'):
     fw.close()
     # 将语料库数据存入mongodb中
     idf_col = db_connect.connect_mongodb_col(db_name, col_name)
-    idf_col.remove({})
+    # idf_col.remove({})
     idf_col.insert_many(idf_list)
     print("语料库生成完成")
 
@@ -189,13 +189,26 @@ def sentence_similarity(str1, str2):
     part_up = 0.0
     for v1, v2 in zip(vector1, vector2):
         part_up += v1 * v2
-    part_down = math.sqrt(sum(vector1)*sum(vector2))
+    part_down = math.sqrt(sum(vector1) * sum(vector2))
     if part_down == 0:
         return 0.0
     else:
-        return part_up/part_down
+        return part_up / part_down
+
+
+def extract_addword():
+    """
+    提取添加词
+    :return:
+    """
+    col = db_connect.connect_mongodb_col('chatbotdb', 'idf_dict')
+    f = open('corpus/addword.txt', 'w', encoding='utf-8')
+    for item in col.find({}, {'_id': 0}):
+        if float(item['idf']) < 1 and len(item['word']) > 1:
+            f.write(item['word'] + '\n')
+
+    f.close()
+
 
 if __name__ == '__main__':
-    str1 = '周杰伦是一个歌手,也是一个叉叉'
-    str2 = '周杰伦不是一个叉叉，但是是一个歌手'
-    sentence_similarity(str1, str2)
+    extract_addword()

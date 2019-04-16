@@ -175,6 +175,7 @@ class ChatBot:
         :return:
         """
         # 判断是否是疑问句
+        target = target.lower()
         taglist = jieba.cut(target)
         tag = recognize(' '.join(taglist))
 
@@ -197,16 +198,19 @@ class ChatBot:
                         docs.append(l)
             # 相似问题匹配
             for theme in themes:
-                list = self.themequesbots[theme].get_similar_questions_by_word_list(target)
+                list = self.themequesbots[theme].get_similar_questions_by_word_list(target_text)
                 if list is None:
                     continue
                 for l in list:
                     if float(l[1]) > 0.3:
                         ques_docs.append(l)
+            """
+            # 短文本相似度
             for doc in docs:
                 doc[1] = float(doc[1]) + sentence_similarity(target, doc[0])
             for ques_doc in ques_docs:
                 ques_doc[1] = float(ques_doc[1]) + sentence_similarity(target, ques_doc[0])
+            """
             # 相似文档排序
             sort_docs = sorted(docs, key=lambda x: x[1], reverse=True)[:5]
             # 相似问题排序
@@ -230,7 +234,7 @@ class ChatBot:
             sort_docs = sorted(docs, key=lambda x: x[1], reverse=True)
             return sort_docs[:10]
 
-    def similar_recommanded(self, user, recommended_num=20, theme_num=3):
+    def similar_recommanded(self, user, recommended_num=20):
         """
         传入用户名和主题名，获取其历史记录，获得历史权重值，筛选出比重高的主题
         将历史记录传入对应的ThemeBot，获得相似文档的推荐集合
@@ -240,6 +244,9 @@ class ChatBot:
         colname = 'history'
         col = connect_mongodb_col(ChatBot.dbname, colname)
         history = [item for item in col.find({'user': user}, {'_id': 0, 'user': 0}).sort('time', -1).limit(50)]
+        # 如果没有用户记录，则返回热门推荐文档
+        if len(history) == 0:
+            return self.get_hot_doc()
         # 初始化历史权重字典
         weight_dict = {theme: 0 for theme in self.themes}
         # 初始化历史记录字典，用于将历史记录按theme分类
@@ -256,9 +263,12 @@ class ChatBot:
             diff_value = math.floor((now - timeStamp) / day_value)
             # 计算历史权重
             item['decay'] = exponential_decay(diff_value)
-            weight_dict[item['theme']] += exponential_decay(diff_value)
-            record_dict[item['theme']].append(item)
-        print(weight_dict)
+            try:
+                weight_dict[item['theme']] += exponential_decay(diff_value)
+                record_dict[item['theme']].append(item)
+            except KeyError:
+                continue
+        # print(weight_dict)
         theme_list = sorted(weight_dict, key=weight_dict.get, reverse=True)
         weight_sum = 0
         for theme in record_dict.keys():
@@ -273,6 +283,17 @@ class ChatBot:
             if record_num > 0:
                 recommended_list.append(self.themebots[theme].historical_recommanded(record_dict[theme], record_num))
         return recommended_list
+
+    def get_hot_doc(self):
+        """
+        返回热门文档
+        :return:
+        """
+        col = connect_mongodb_col(ChatBot.dbname, 'hot_doc')
+        docs = []
+        for item in col.find({}, {'_id': 0}):
+            docs.append((item['title'], item['theme'], 1))
+        return [docs]
 
     def cal_user_portrait(self, user):
         """
@@ -327,6 +348,8 @@ class ChatBot:
 
 def main():
     chatbot = ChatBot()
+    chatbot.extract_dict()
+    """
     chatbot.start_all_bots()
     # chatbot.cal_user_portrait('lym')
     # a = chatbot.get_user_portrait('lym')
@@ -336,6 +359,7 @@ def main():
         list = chatbot.similar_documents(a, chatbot.similar_theme_matching(a))
         for l in list:
             print(l)
+    """
 
 
 if __name__ == '__main__':

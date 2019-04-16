@@ -72,8 +72,7 @@ class ThemeQuesBot:
             self.questions = self.read_question()  # 读入文档
             # 问答推荐模型训练
             train_corpus = [
-                item['question'].lower() * math.ceil(len(item['answer']) / len(item['question'])) + item['answer'].lower()
-                for item in self.questions]
+                item['question'].lower() for item in self.questions]
             self.train_by_lsi(train_corpus)
 
 
@@ -293,8 +292,8 @@ class ThemeQuesBot:
 
 
 def main():
-    bot = ThemeQuesBot('大数据')
-    bot.start()
+    bot = ThemeQuesBot('弹性计算')
+    bot.start(train=True)
     #records = bot.get_historical_record()
     #print(records)
     while True:

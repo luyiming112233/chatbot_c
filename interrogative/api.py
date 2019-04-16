@@ -25,3 +25,6 @@ def recognize(sentence):
     prob = model.predict(sentence)[0]
     print(prob)
     return True if prob > 0.5 else False
+
+if __name__ == '__main__':
+    train()

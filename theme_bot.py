@@ -87,7 +87,8 @@ class ThemeBot:
             self.documents = self.read_document()  # 读入文档
             # 问答推荐模型训练
             train_corpus = [
-                item['title'].lower() * math.ceil(len(item['content']) / len(item['title'] ) * k) + item[
+                #item['title'].lower() * math.ceil(len(item['content']) / len(item['title'] ) * k) + item['content'].lower()
+                item['title'].lower() + item[
                     'content'].lower()
                 for item in self.documents]
             self.train_by_lsi(train_corpus)
@@ -214,6 +215,10 @@ class ThemeBot:
             else:
                 idf_dict[w] = float(c["idf"])
                 id_idf[id] = float(c["idf"])
+############################################################
+                #idf_dict[w] = float(1)
+                #id_idf[id] = float(1)
+
             id = id + 1
         return idf_dict, id_idf
 
@@ -232,13 +237,13 @@ class ThemeBot:
         # doc2bow(): 将collection words 转为词袋，用两元组(word_id, word_frequency)表示
         corpus = [dictionary.doc2bow(text) for text in lib_texts]
 
-        tfidf = models.TfidfModel()
-        tfidf.idfs = idfs
+        tfidf = models.TfidfModel(corpus)
+        # tfidf.idfs = idfs
         corpus_tfidf = tfidf[corpus]
 
         # 训练topic数量为300的LSI模型
-        lsi = models.LsiModel(corpus_tfidf, id2word=dictionary, num_topics=200)
-        index = similarities.MatrixSimilarity(lsi[corpus])  # index 是 gensim.similarities.docsim.MatrixSimilarity 实例
+        lsi = models.LsiModel(corpus, id2word=dictionary, num_topics=300)
+        index = similarities.MatrixSimilarity(lsi[corpus_tfidf])  # index 是 gensim.similarities.docsim.MatrixSimilarity 实例
 
         # 存储模型的内容
         tfidf.save(self.tfidf_location)
@@ -295,12 +300,13 @@ class ThemeBot:
         :return:
         """
         # target_text = pre_process_cn(target_document, low_freq_filter=False)
+        target_document=target_document.lower()
         if type(target_document) == 'str':
             target_document = [target_document]
 
         target_text = [item for item in jieba.cut(target_document)]
 
-        print("target_text:", target_text)
+        # print("target_text:", target_text)
 
         # 词袋处理
         ml_bow = self.dictionary.doc2bow(target_text)
@@ -309,11 +315,9 @@ class ThemeBot:
         if len(ml_bow) == 0:
             return None
 
-        for w in self.tfidf[ml_bow]:
-            print(w[0], w[1])
-
         # 在上面选择的模型数据 lsi 中，计算其他数据与其的相似度
-        ml_lsi = self.lsi[ml_bow]  # ml_lsi 形式如 (topic_id, topic_value)
+        # ml_lsi = self.lsi[ml_bow]  # ml_lsi 形式如 (topic_id, topic_value)
+        ml_lsi = self.lsi[self.tfidf[ml_bow]]  # 传入tfidf值
         sims = self.index[ml_lsi]
         # 排序
         sort_sims = sorted(enumerate(sims), key=lambda item: -item[1])
@@ -321,7 +325,7 @@ class ThemeBot:
         document_list = []
 
         # 查看结果
-        print("target:", target_document)
+        # print("target:", target_document)
         # 返回前document_num个相似文档标题
         for i in range(document_num):
             document_list.append([self.documents[sort_sims[i][0]]['title'], str(sort_sims[i][1])])
@@ -336,6 +340,10 @@ class ThemeBot:
         :return:
         """
         target_text = word_list
+
+        # 小写处理
+        for item in word_list:
+            item = item.lower()
 
         # 词袋处理
         ml_bow = self.dictionary.doc2bow(target_text)
@@ -466,7 +474,10 @@ class ThemeBot:
         for item in self.documents:
             doc_id_dict[item['title']] = item['docID']
         for item in history:
-            item['docID'] = doc_id_dict[item['title']]
+            try:
+                item['docID'] = doc_id_dict[item['title']]
+            except KeyError:
+                history.remove(item)
         # 历史文档，将在推荐集中去除
         history_docs = set(r['title'] for r in history)
         print(history_docs)
@@ -485,7 +496,11 @@ class ThemeBot:
             diff_value = math.floor((now - timeStamp) / day_value)
             # 计算时间衰退值
             decay = exponential_decay(diff_value)
-            sim_list = self.get_similarity_docID(r['docID'], 20)
+            try:
+                sim_list = self.get_similarity_docID(r['docID'], 20)
+            except KeyError:
+                history.remove(r)
+                continue
             for s in sim_list:
                 doc_sim_dict[s[0]] = decay * doc_sim_dict.get(s[0], 0) + s[1]
         # 将文档权重排序
@@ -694,7 +709,7 @@ class ThemeBot:
 
 
 def main():
-    bot = ThemeBot('linux')
+    bot = ThemeBot('弹性计算')
     bot.start()
     # bot.get_user_portrait('lym')
     # bot.display()

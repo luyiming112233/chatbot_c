@@ -242,9 +242,14 @@ def main():
         theme_type(target)
 
 
+def tt():
+    from interrogative import api as my_api
+    my_api.train()
+
 
 if __name__ == '__main__':
+    tt()
     # api.t_train()
-    main()
+    #reset_theme_table('大数据')
     #taglist = jieba.cut('为什么尽量使用内建算子，而不是自定义函数？')
     #tag = recognize(' '.join(taglist))
