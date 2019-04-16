@@ -72,7 +72,8 @@ class ThemeQuesBot:
             self.questions = self.read_question()  # 读入文档
             # 问答推荐模型训练
             train_corpus = [
-                item['question'].lower() for item in self.questions]
+                item['question'].lower() * math.ceil(len(item['answer']) / len(item['question'])) + item['answer'].lower()
+                for item in self.questions]
             self.train_by_lsi(train_corpus)
 
 
@@ -195,8 +196,8 @@ class ThemeQuesBot:
         # doc2bow(): 将collection words 转为词袋，用两元组(word_id, word_frequency)表示
         corpus = [dictionary.doc2bow(text) for text in lib_texts]
 
-        tfidf = models.TfidfModel()
-        tfidf.idfs = idfs
+        tfidf = models.TfidfModel(corpus)
+        # tfidf.idfs = idfs
         corpus_tfidf = tfidf[corpus]
 
         # 训练topic数量为num_topics的LSI模型
@@ -236,11 +237,11 @@ class ThemeQuesBot:
         if len(ml_bow) == 0:
             return None
 
-        for w in self.tfidf[ml_bow]:
-            print(w[0], w[1])
+        #for w in self.tfidf[ml_bow]:
+        #   print(w[0], w[1])
 
         # 在上面选择的模型数据 lsi 中，计算其他数据与其的相似度
-        ml_lsi = self.lsi[ml_bow]  # ml_lsi 形式如 (topic_id, topic_value)
+        ml_lsi = self.lsi[self.tfidf[ml_bow]]  # ml_lsi 形式如 (topic_id, topic_value)
         sims = self.index[ml_lsi]
         # 排序
         sort_sims = sorted(enumerate(sims), key=lambda item: -item[1])
@@ -251,7 +252,8 @@ class ThemeQuesBot:
         print("target:", target_question)
         # 返回前question_num个相似文档标题
         for i in range(question_num):
-            question_list.append([self.questions[sort_sims[i][0]]['question'], str(sort_sims[i][1])])
+            if sort_sims[i][0] > 0.6:
+                question_list.append([self.questions[sort_sims[i][0]]['question'], str(sort_sims[i][1])])
         return question_list
 
     def get_similar_questions_by_word_list(self, word_list, question_num=10):
@@ -273,11 +275,11 @@ class ThemeQuesBot:
         if len(ml_bow) == 0:
             return None
 
-        for w in self.tfidf[ml_bow]:
-            print(w[0], w[1])
+        #for w in self.tfidf[ml_bow]:
+        #    print(w[0], w[1])
 
         # 在上面选择的模型数据 lsi 中，计算其他数据与其的相似度
-        ml_lsi = self.lsi[ml_bow]  # ml_lsi 形式如 (topic_id, topic_value)
+        ml_lsi = self.lsi[self.tfidf[ml_bow]]  # ml_lsi 形式如 (topic_id, topic_value)
         sims = self.index[ml_lsi]
         # 排序
         sort_sims = sorted(enumerate(sims), key=lambda item: -item[1])
@@ -287,7 +289,8 @@ class ThemeQuesBot:
         # 查看结果
         # 返回前question_num个相似文档标题
         for i in range(question_num):
-            question_list.append([self.questions[sort_sims[i][0]]['question'], str(sort_sims[i][1])])
+            if sort_sims[i][1] > 0.6:
+                question_list.append([self.questions[sort_sims[i][0]]['question'], str(sort_sims[i][1])])
         return question_list
 
 

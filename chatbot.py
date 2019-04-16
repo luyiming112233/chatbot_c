@@ -204,13 +204,12 @@ class ChatBot:
                 for l in list:
                     if float(l[1]) > 0.3:
                         ques_docs.append(l)
-            """
+
             # 短文本相似度
             for doc in docs:
-                doc[1] = float(doc[1]) + sentence_similarity(target, doc[0])
+                doc[1] = float(doc[1])*2
             for ques_doc in ques_docs:
-                ques_doc[1] = float(ques_doc[1]) + sentence_similarity(target, ques_doc[0])
-            """
+                ques_doc[1] = float(ques_doc[1])
             # 相似文档排序
             sort_docs = sorted(docs, key=lambda x: x[1], reverse=True)[:5]
             # 相似问题排序
